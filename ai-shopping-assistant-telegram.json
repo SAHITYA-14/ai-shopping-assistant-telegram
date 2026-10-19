@@ -1,0 +1,182 @@
+{
+  "name": "shopzyAI_Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -176,
+        -48
+      ],
+      "id": "9ac3215f-9d36-4079-b196-25653974d3d1",
+      "name": "Telegram Trigger",
+      "webhookId": "4efecbe8-c284-457c-a144-c30af0f74b77",
+      "credentials": {
+        "telegramApi": {
+          "id": "JgTSJDUnz0hRDKNz",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "=You are an intelligent AI Shopping Assistant for Amazon India.\n\nYour responsibilities:\n\n1. Understand the user's product category, budget, preferences, and requirements.\n2. Always use the connected ScraperAPI Amazon Search Tool when the user asks to find or compare products.\n3. Pass relevant product search keywords to the tool using its product_query input.\n4. Analyze only the product data returned by the tool.\n5. Filter products according to the user's budget and preferences whenever the returned data supports these filters.\n6. Select up to five of the most relevant products based on available price, rating, review count, and features.\n7. Present each product in this format:\n\n   Product name:\n   Price:\n   Rating and review count:\n   Key features:\n   Why it matches the user's needs:\n   Amazon product link:\n\n8. Rank products based on how well they match the user's requirements, not just their ratings.\n9. Never invent prices, ratings, reviews, features, or product links. If information is unavailable, say so.\n10. If the tool fails or returns no usable products, explain that clearly instead of making up recommendations.\n11. Ask one short follow-up question if the user's request is too unclear to search effectively.\n12. Keep the final response concise, well-organized, and easy to read on Telegram.\n\nYour goal is to save users time by finding and comparing relevant products using retrieved Amazon data."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        48,
+        -48
+      ],
+      "id": "0b012153-74e1-4be3-a77b-ee4fa79ef9fe",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -16,
+        208
+      ],
+      "id": "4f6a84af-71ef-4247-9e20-295139091b91",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "xrkLg3NDwb6OCwxp",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.scraperapi.com/structured/amazon/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "05bb4ce1303b8296d7ab444851ec789b"
+            },
+            {
+              "name": "query",
+              "value": "=query → {{ $fromAI('product_query', 'Product search keywords', 'string') }}"
+            },
+            {
+              "name": "country_code",
+              "value": "in"
+            },
+            {
+              "name": "tld",
+              "value": "in"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        208,
+        208
+      ],
+      "id": "764cc3a5-2873-4c61-9566-dccbb5b636be",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        -48
+      ],
+      "id": "5d31d6b7-92ed-4a78-94cd-87a3210c92e0",
+      "name": "Send a text message",
+      "webhookId": "88235d6f-416f-4fc9-ae31-38488e33f8e0",
+      "credentials": {
+        "telegramApi": {
+          "id": "JgTSJDUnz0hRDKNz",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e790a655-75dd-439c-92af-f9b3b8e933ac",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "31a8e66548fe853da8a06ad264cdc87c28ccb9b823dba45809b816d67778ffe1"
+  },
+  "nodeGroups": [],
+  "id": "vq9F0DgfDNISojDK",
+  "tags": []
+}
